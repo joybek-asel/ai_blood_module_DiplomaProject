@@ -1,0 +1,44 @@
+# Перейдите в папку проекта
+cd ~/PycharmProjects/ai_blood_recommendation
+
+# Создайте .gitignore
+cat > .gitignore << 'EOF'
+# Виртуальное окружение
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Данные и модели (если файлы большие)
+data/*.csv
+models/*.pkl
+models/*.joblib
+
+# Логи
+*.log
+logs/
+
+# Настройки с паролями
+*_config.py
+.env
+*.local
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+EOF
