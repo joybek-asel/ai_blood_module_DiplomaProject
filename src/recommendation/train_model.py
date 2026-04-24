@@ -8,7 +8,6 @@ from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
 from sklearn.preprocessing import LabelEncoder
 import joblib
 import os
-import math
 
 print("=" * 70)
 print("МОДУЛЬ ОБУЧЕНИЯ - РАСШИРЕННАЯ МЕДИЦИНСКАЯ ЛОГИКА")
@@ -366,17 +365,19 @@ for _, row in feature_importance.iterrows():
 
 print("\n💾 Сохранение модели и кодировщиков...")
 
-os.makedirs('../models', exist_ok=True)
-os.makedirs('../data', exist_ok=True)
+#os.makedirs('../models', exist_ok=True)
+#os.makedirs('../data', exist_ok=True)
+os.makedirs('../../models', exist_ok=True)
+os.makedirs('../../data', exist_ok=True)
 
 # Сохраняем модель
-model_path = '../models/recommendation_model_advanced.pkl'
+model_path = '../../models/recommendation_model_advanced.pkl'
 joblib.dump(model, model_path)
 print(f"   ✅ Модель: {model_path}")
 
 # Сохраняем кодировщики
-joblib.dump(blood_encoder, '../models/blood_type_encoder.pkl')
-joblib.dump(bmi_encoder, '../models/bmi_category_encoder.pkl')
+joblib.dump(blood_encoder, '../../models/blood_type_encoder.pkl')
+joblib.dump(bmi_encoder, '../../models/bmi_category_encoder.pkl')
 
 # Сохраняем метаданные
 metadata = {
@@ -389,10 +390,10 @@ metadata = {
     'blood_types': list(blood_encoder.classes_),
     'bmi_categories': list(bmi_encoder.classes_)
 }
-joblib.dump(metadata, '../models/model_metadata_advanced.pkl')
+joblib.dump(metadata, '../../models/model_metadata_advanced.pkl')
 
 # Сохраняем данные
-data.to_csv('../data/advanced_donor_data.csv', index=False)
+data.to_csv('../../data/advanced_donor_data.csv', index=False)
 
 print("\n" + "=" * 70)
 print("🎉 РАСШИРЕННАЯ МОДЕЛЬ ГОТОВА!")

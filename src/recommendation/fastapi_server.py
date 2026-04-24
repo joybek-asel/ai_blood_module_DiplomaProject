@@ -50,7 +50,7 @@ class DonorRequest(BaseModel):
     """Запрос от Java приложения с данными донора"""
     age: int = Field(..., ge=18, le=65, description="Возраст донора (18-65 лет)")
     gender: int = Field(..., ge=0, le=1, description="Пол: 0=женщина, 1=мужчина")
-    blood_type: str = Field(..., regex="^(A|B|AB|O)[+-]$", description="Группа крови: A+, A-, B+, B-, AB+, AB-, O+, O-")
+    blood_type: str = Field(..., pattern="^(A|B|AB|O)[+-]$", description="Группа крови: A+, A-, B+, B-, AB+, AB-, O+, O-")
     height_cm: float = Field(..., ge=100, le=250, description="Рост в сантиметрах")
     weight_kg: float = Field(..., ge=30, le=200, description="Вес в килограммах")
     hemoglobin: float = Field(..., ge=8, le=20, description="Уровень гемоглобина (г/дл)")
