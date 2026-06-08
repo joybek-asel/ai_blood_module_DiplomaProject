@@ -15,41 +15,38 @@ print("Группа крови | Резус-фактор | ИМТ | Возрас
 print("=" * 70)
 
 
-# ============================================================
+
 # ЧАСТЬ 1: МЕДИЦИНСКИЕ КОЭФФИЦИЕНТЫ И ПРАВИЛА
-# ============================================================
 
 class MedicalRules:
-    """Медицинские правила для расчёта безопасного интервала донации"""
+    """медицинские правила для расчёта безопасного интервала донации"""
 
-    # Базовые интервалы по полу (дни) - норма ВОЗ
+    # базовые интервалы по полу (дни) - норма ВОЗ
     BASE_INTERVAL = {
-        1: 90,  # мужчины
-        0: 120  # женщины
+        1: 90,  # муж
+        0: 120  # жен
     }
 
-    # Минимальные значения гемоглобина для донации (г/дл)
     MIN_HEMOGLOBIN = {
-        1: 13.5,  # мужчины
-        0: 12.5  # женщины (ВОЗ рекомендует 12.5 для донации)
+        1: 13.5,  # муж
+        0: 12.5  # женщ (ВОЗ рекомендует 12.5 для донации)
     }
 
-    # Оптимальные значения гемоглобина
     OPTIMAL_HEMOGLOBIN = {
         1: 15.0,
         0: 13.8
     }
 
     # Коэффициенты для разных групп крови (восстановление)
-    # Основано на исследованиях: разные группы крови имеют разные скорости восстановления
+    # основано на исследованиях: разные группы крови имеют разные скорости восстановления
     BLOOD_TYPE_FACTOR = {
-        'O-': 1.15,  # Универсальный донор, но медленнее восстанавливается
+        'O-': 1.15,
         'O+': 1.10,
         'A-': 1.05,
         'A+': 1.00,
         'B-': 1.05,
         'B+': 1.00,
-        'AB-': 0.95,  # Универсальный реципиент, быстрее восстанавливается
+        'AB-': 0.95,
         'AB+': 0.90
     }
 
@@ -76,7 +73,7 @@ class MedicalRules:
     def get_recovery_factor_by_age(age):
         """Фактор восстановления по возрасту"""
         if age < 20:
-            return 0.85  # Молодые восстанавливаются быстрее
+            return 0.85
         elif age < 30:
             return 0.90
         elif age < 40:
@@ -86,7 +83,7 @@ class MedicalRules:
         elif age < 60:
             return 1.10
         else:
-            return 1.25  # Пожилые восстанавливаются дольше
+            return 1.25
 
 
 def calculate_advanced_safe_interval(row):
@@ -101,34 +98,34 @@ def calculate_advanced_safe_interval(row):
     gender = row['gender']
     blood_type = row['blood_type']  # например 'A+', 'O-', etc.
 
-    # ========== 1. БАЗОВЫЙ ИНТЕРВАЛ ==========
+    # 1. БАЗОВЫЙ ИНТЕРВАЛ
     base = MedicalRules.BASE_INTERVAL[gender]
 
-    # ========== 2. КОРРЕКЦИЯ ПО ГРУППЕ КРОВИ ==========
+    # 2. КОРРЕКЦИЯ ПО ГРУППЕ КРОВИ
     blood_factor = MedicalRules.BLOOD_TYPE_FACTOR.get(blood_type, 1.0)
 
-    # ========== 3. КОРРЕКЦИЯ ПО ИМТ ==========
+    # 3. КОРРЕКЦИЯ ПО ИМТ
     _, bmi_days, _ = MedicalRules.get_bmi_category(row['bmi'])
 
-    # ========== 4. КОРРЕКЦИЯ ПО ГЕМОГЛОБИНУ ==========
+    # 4. КОРРЕКЦИЯ ПО ГЕМОГЛОБИНУ
     min_hgb = MedicalRules.MIN_HEMOGLOBIN[gender]
     optimal_hgb = MedicalRules.OPTIMAL_HEMOGLOBIN[gender]
 
     hgb_factor = 0
     if row['hemoglobin'] < min_hgb:
-        # Серьёзный дефицит
+        # серьёзный дефицит
         deficit_percent = (min_hgb - row['hemoglobin']) / min_hgb
         hgb_factor = int(deficit_percent * 60)
     elif row['hemoglobin'] < optimal_hgb:
-        # Небольшой дефицит
+        # небольшой дефицит
         deficit_percent = (optimal_hgb - row['hemoglobin']) / optimal_hgb
         hgb_factor = int(deficit_percent * 25)
     elif row['hemoglobin'] > 17.5 and gender == 1:
-        hgb_factor = -10  # Высокий гемоглобин - можно чаще
+        hgb_factor = -10
     elif row['hemoglobin'] > 16.0 and gender == 0:
         hgb_factor = -8
 
-    # ========== 5. КОРРЕКЦИЯ ПО ФЕРРИТИНУ ==========
+    # 5. КОРРЕКЦИЯ ПО ФЕРРИТИНУ
     ferritin_factor = 0
     if row['ferritin'] < 15:
         ferritin_factor = 75
@@ -137,16 +134,16 @@ def calculate_advanced_safe_interval(row):
     elif row['ferritin'] < 50:
         ferritin_factor = 25
     elif row['ferritin'] > 150:
-        ferritin_factor = -10  # Хороший запас железа
+        ferritin_factor = -10
 
-    # ========== 6. КОРРЕКЦИЯ ПО ВОЗРАСТУ ==========
+    # 6. КОРРЕКЦИЯ ПО ВОЗРАСТУ
     age_factor = (MedicalRules.get_recovery_factor_by_age(row['age']) - 1.0) * base
 
-    # ========== 7. ОСОБЫЕ ПРАВИЛА ДЛЯ РЕЗУС-ФАКТОРА ==========
+    # 7. ОСОБЫЕ ПРАВИЛА ДЛЯ РЕЗУС-ФАКТОРА
     # Rh- нужно больше времени между донациями (дефицит доноров)
     rh_factor = 10 if '-' in blood_type else 0
 
-    # ========== 8. ОПЫТ ДОНАЦИЙ ==========
+    # 8. ОПЫТ ДОНАЦИЙ
     exp_factor = 0
     if row['prev_donations'] > 30:
         exp_factor = -15
@@ -157,16 +154,15 @@ def calculate_advanced_safe_interval(row):
     elif row['prev_donations'] == 0:
         exp_factor = 15
 
-    # ========== 9. ИСТОРИЯ ПРОБЛЕМ ==========
+    # 9. ИСТОРИЯ ПРОБЛЕМ
     history_factor = 40 if row['low_hgb_history'] == 1 else 0
 
-    # ========== 10. КОРРЕКЦИЯ ПО ПОЛУ (дополнительно) ==========
-    # Женщинам нужно больше времени (уже учтено в base)
+    # 10. КОРРЕКЦИЯ ПО ПОЛУ (дополнительно)
     gender_extra = 0
 
-    # ========== ФИНАЛЬНЫЙ РАСЧЁТ ==========
+    # ФИНАЛЬНЫЙ РАСЧЁТ
     total = (
-                        base * blood_factor) + hgb_factor + ferritin_factor + bmi_days + age_factor + rh_factor + exp_factor + history_factor
+            base * blood_factor) + hgb_factor + ferritin_factor + bmi_days + age_factor + rh_factor + exp_factor + history_factor
 
     # Корректировка для женщин с низким ферритином (особенно важно)
     if gender == 0 and row['ferritin'] < 30:
@@ -181,14 +177,13 @@ def calculate_advanced_safe_interval(row):
     return int(total)
 
 
-# ============================================================
-# ЧАСТЬ 2: ГЕНЕРАЦИЯ РЕАЛИСТИЧНЫХ ДАННЫХ
-# ============================================================
 
-print("\n📊 Генерация расширенных данных о донорах...")
+# ЧАСТЬ 2: ГЕНЕРАЦИЯ РЕАЛИСТИЧНЫХ ДАННЫХ
+
+print("\n Генерация расширенных данных о донорах...")
 
 np.random.seed(42)
-n_donors = 10000  # Больше данных для точности
+n_donors = 10000
 
 # Распределение групп крови (реалистичная статистика России/СНГ)
 BLOOD_TYPES = ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-']
@@ -238,18 +233,18 @@ data['bmi'] = data['bmi'].round(1)
 # Категория ИМТ для анализа
 data['bmi_category'] = data['bmi'].apply(lambda x: MedicalRules.get_bmi_category(x)[0])
 
-print(f"✅ Сгенерировано доноров: {len(data)}")
-print(f"\n📊 Статистика параметров:")
+print(f" Сгенерировано доноров: {len(data)}")
+print(f"\n Статистика параметров:")
 print(f"   Возраст: {data['age'].min()}-{data['age'].max()} лет (средний: {data['age'].mean():.1f})")
 print(f"   ИМТ: {data['bmi'].min():.1f}-{data['bmi'].max():.1f} (средний: {data['bmi'].mean():.1f})")
 print(f"   Гемоглобин: {data['hemoglobin'].min():.1f}-{data['hemoglobin'].max():.1f} г/дл")
 print(f"   Ферритин: {data['ferritin'].min():.0f}-{data['ferritin'].max():.0f} мкг/л")
-print(f"\n📊 Распределение групп крови:")
+print(f"\n Распределение групп крови:")
 for bt in BLOOD_TYPES:
     count = (data['blood_type'] == bt).sum()
     print(f"   {bt}: {count} ({count / len(data) * 100:.1f}%)")
 
-print(f"\n📊 Распределение ИМТ:")
+print(f"\n Распределение ИМТ:")
 for cat in MedicalRules.BMI_CORRECTION.keys():
     count = (data['bmi_category'] == cat).sum()
     if count > 0:
@@ -259,11 +254,11 @@ for cat in MedicalRules.BMI_CORRECTION.keys():
 # ЧАСТЬ 3: РАСЧЁТ ЦЕЛЕВОЙ ПЕРЕМЕННОЙ
 # ============================================================
 
-print("\n🏥 Расчёт безопасных интервалов с учётом всех факторов...")
+print("\n Расчёт безопасных интервалов с учётом всех факторов...")
 
 data['safe_interval_days'] = data.apply(calculate_advanced_safe_interval, axis=1)
 
-print(f"✅ Интервалы рассчитаны:")
+print(f" Интервалы рассчитаны:")
 print(f"   Минимум: {data['safe_interval_days'].min()} дней")
 print(f"   Средний: {data['safe_interval_days'].mean():.0f} дней")
 print(f"   Медиана: {data['safe_interval_days'].median():.0f} дней")
@@ -273,7 +268,7 @@ print(f"   Максимум: {data['safe_interval_days'].max()} дней")
 # ЧАСТЬ 4: ПОДГОТОВКА ДАННЫХ ДЛЯ МОДЕЛИ
 # ============================================================
 
-print("\n🔄 Кодирование категориальных признаков...")
+print("\n Кодирование категориальных признаков...")
 
 # Кодируем группу крови
 blood_encoder = LabelEncoder()
@@ -291,13 +286,13 @@ X = data[feature_cols]
 y = data['safe_interval_days']
 
 # Кодируем пол (уже 0/1)
-print(f"✅ Признаки: {feature_cols}")
+print(f" Признаки: {feature_cols}")
 
 # ============================================================
 # ЧАСТЬ 5: ОБУЧЕНИЕ МОДЕЛИ
 # ============================================================
 
-print("\n🤖 Обучение модели с расширенными признаками...")
+print("\n Обучение модели с расширенными признаками...")
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -315,13 +310,12 @@ model.fit(X_train, y_train)
 
 # Кросс-валидация
 cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='r2')
-print(f"📊 Кросс-валидация R² = {cv_scores.mean():.3f} (+/- {cv_scores.std():.3f})")
+print(f" Кросс-валидация R² = {cv_scores.mean():.3f} (+/- {cv_scores.std():.3f})")
 
-# ============================================================
+
 # ЧАСТЬ 6: ОЦЕНКА ТОЧНОСТИ
-# ============================================================
 
-print("\n📈 Оценка точности модели:")
+print("\n Оценка точности модели:")
 
 y_pred = model.predict(X_test)
 
@@ -342,11 +336,11 @@ print(f"   Точность ±14 дней: {within_14_days:.1f}%")
 
 # Оценка
 if mae <= 6:
-    print("   🎯 ОТЛИЧНО! Модель имеет высокую клиническую точность.")
+    print("    ОТЛИЧНО! Модель имеет высокую клиническую точность.")
 elif mae <= 10:
-    print("   ✅ ХОРОШО! Модель пригодна для практического использования.")
+    print("    ХОРОШО! Модель пригодна для практического использования.")
 else:
-    print("   ⚠️ Требуется дополнительная настройка.")
+    print("   ️ Требуется дополнительная настройка.")
 
 # Анализ важности признаков
 feature_importance = pd.DataFrame({
@@ -354,7 +348,7 @@ feature_importance = pd.DataFrame({
     'importance': model.feature_importances_
 }).sort_values('importance', ascending=False)
 
-print("\n📊 ВАЖНОСТЬ ПРИЗНАКОВ (что влияет на рекомендацию):")
+print("\n ВАЖНОСТЬ ПРИЗНАКОВ (что влияет на рекомендацию):")
 for _, row in feature_importance.iterrows():
     bar = "█" * int(row['importance'] * 50)
     print(f"   {row['feature']:25} {bar} {row['importance']:.3f}")
@@ -363,21 +357,22 @@ for _, row in feature_importance.iterrows():
 # ЧАСТЬ 7: СОХРАНЕНИЕ МОДЕЛИ
 # ============================================================
 
-print("\n💾 Сохранение модели и кодировщиков...")
+print("\n Сохранение модели и кодировщиков...")
 
-#os.makedirs('../models', exist_ok=True)
-#os.makedirs('../data', exist_ok=True)
-os.makedirs('../../models', exist_ok=True)
-os.makedirs('../../data', exist_ok=True)
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MODELS_DIR = os.path.join(_BASE_DIR, 'models')
+DATA_DIR = os.path.join(_BASE_DIR, 'data')
+os.makedirs(MODELS_DIR, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
 
 # Сохраняем модель
-model_path = '../../models/recommendation_model_advanced.pkl'
+model_path = os.path.join(MODELS_DIR, 'recommendation_model_advanced.pkl')
 joblib.dump(model, model_path)
-print(f"   ✅ Модель: {model_path}")
+print(f"    Модель: {model_path}")
 
 # Сохраняем кодировщики
-joblib.dump(blood_encoder, '../../models/blood_type_encoder.pkl')
-joblib.dump(bmi_encoder, '../../models/bmi_category_encoder.pkl')
+joblib.dump(blood_encoder, os.path.join(MODELS_DIR, 'blood_type_encoder.pkl'))
+joblib.dump(bmi_encoder, os.path.join(MODELS_DIR, 'bmi_category_encoder.pkl'))
 
 # Сохраняем метаданные
 metadata = {
@@ -390,18 +385,18 @@ metadata = {
     'blood_types': list(blood_encoder.classes_),
     'bmi_categories': list(bmi_encoder.classes_)
 }
-joblib.dump(metadata, '../../models/model_metadata_advanced.pkl')
+joblib.dump(metadata, os.path.join(MODELS_DIR, 'model_metadata_advanced.pkl'))
 
 # Сохраняем данные
-data.to_csv('../../data/advanced_donor_data.csv', index=False)
+data.to_csv(os.path.join(DATA_DIR, 'advanced_donor_data.csv'), index=False)
 
 print("\n" + "=" * 70)
-print("🎉 РАСШИРЕННАЯ МОДЕЛЬ ГОТОВА!")
+print(" РАСШИРЕННАЯ МОДЕЛЬ ГОТОВА!")
 print(f"   Точность: ошибка {mae:.1f} дней | ±7 дней: {within_7_days:.1f}%")
 print("=" * 70)
 
 # Пример предсказания
-print("\n📊 ПРИМЕР ПРЕДСКАЗАНИЯ:")
+print("\n ПРИМЕР ПРЕДСКАЗАНИЯ:")
 sample = X_test.iloc[[0]]
 pred = model.predict(sample)[0]
 actual = y_test.iloc[0]

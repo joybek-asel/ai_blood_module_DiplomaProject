@@ -18,29 +18,29 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # ============================================================
 
 DB_CONFIG = {
-    'host': 'localhost',  # или IP вашего сервера PostgreSQL
-    'port': 5432,  # стандартный порт PostgreSQL
-    'database': 'donor_db',
-    'user': 'postgres',
-    'password': '123'
+    'host':     os.getenv('POSTGRES_HOST', 'localhost'),
+    'port':     int(os.getenv('POSTGRES_PORT', 5432)),
+    'database': os.getenv('POSTGRES_DB', 'donor_db'),
+    'user':     os.getenv('POSTGRES_USER', 'postgres'),
+    'password': os.getenv('POSTGRES_PASSWORD', '123'),
 }
 
-# Альтернативный формат для SQLAlchemy
-DATABASE_URL = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+DATABASE_URL = (
+    f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}"
+    f"@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+)
 
 
-# ============================================================
 # ФУНКЦИИ ДЛЯ РАБОТЫ С БАЗОЙ ДАННЫХ
-# ============================================================
 
 def create_connection():
     """Создаёт соединение с PostgreSQL"""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
-        print("✅ Подключение к PostgreSQL установлено")
+        print(" Подключение к PostgreSQL установлено")
         return conn
     except OperationalError as e:
-        print(f"❌ Ошибка подключения: {e}")
+        print(f" Ошибка подключения: {e}")
         print("\nПроверьте:")
         print("1. Запущен ли PostgreSQL сервер")
         print("2. Правильные ли хост, порт, логин, пароль")
@@ -106,10 +106,10 @@ def create_tables(conn):
         cursor.execute(create_recommendations_table)
         cursor.execute(create_model_metrics_table)
         conn.commit()
-        print("✅ Все таблицы созданы/проверены")
+        print(" Все таблицы созданы/проверены")
         return True
     except Exception as e:
-        print(f"❌ Ошибка создания таблиц: {e}")
+        print(f" Ошибка создания таблиц: {e}")
         conn.rollback()
         return False
 
@@ -130,11 +130,11 @@ def load_data_from_csv(csv_path=None):
                 break
 
     if not csv_path or not os.path.exists(csv_path):
-        print(f"❌ Файл не найден: {csv_path}")
+        print(f" Файл не найден: {csv_path}")
         return None
 
     df = pd.read_csv(csv_path)
-    print(f"✅ Загружено {len(df)} записей из {csv_path}")
+    print(f" Загружено {len(df)} записей из {csv_path}")
     return df
 
 
@@ -187,7 +187,7 @@ def upload_donors_to_postgres(df, conn):
             print(f"   Ошибка в пакете {i}: {e}")
             conn.rollback()
 
-    print(f"✅ Загружено {total_inserted} доноров в PostgreSQL")
+    print(f" Загружено {total_inserted} доноров в PostgreSQL")
     return total_inserted
 
 
@@ -210,10 +210,10 @@ def save_model_metrics(conn, model_version, metrics):
             metrics.get('n_samples', 0)
         ))
         conn.commit()
-        print("✅ Метрики модели сохранены")
+        print(" Метрики модели сохранены")
         return True
     except Exception as e:
-        print(f"❌ Ошибка сохранения метрик: {e}")
+        print(f" Ошибка сохранения метрик: {e}")
         return False
 
 
@@ -232,9 +232,7 @@ def test_connection():
     return False
 
 
-# ============================================================
 # ОСНОВНАЯ ФУНКЦИЯ
-# ============================================================
 
 def main():
     print("=" * 60)
@@ -243,7 +241,7 @@ def main():
 
     # 1. Тестируем подключение
     if not test_connection():
-        print("\n❌ Не удалось подключиться к PostgreSQL")
+        print("\n Не удалось подключиться к PostgreSQL")
         print("\nЧтобы исправить:")
         print("1. Установите PostgreSQL: https://www.postgresql.org/download/")
         print("2. Создайте базу данных: CREATE DATABASE donor_db;")
@@ -267,7 +265,7 @@ def main():
         return
 
     # 5. Загружаем в PostgreSQL
-    print("\n📤 Загрузка данных в PostgreSQL...")
+    print("\n Загрузка данных в PostgreSQL...")
     uploaded = upload_donors_to_postgres(df, conn)
 
     # 6. Сохраняем метрики модели (если есть)
@@ -283,11 +281,11 @@ def main():
     conn.close()
 
     print("\n" + "=" * 60)
-    print(f"✅ ГОТОВО! Загружено {uploaded} доноров")
+    print(f" ГОТОВО! Загружено {uploaded} доноров")
     print("=" * 60)
 
     # Выводим пример данных
-    print("\n📊 Пример загруженных данных:")
+    print("\n Пример загруженных данных:")
     print(df[['age', 'gender', 'blood_type', 'hemoglobin', 'safe_interval_days']].head(10))
 
 

@@ -24,7 +24,7 @@ def load_advanced_model():
         _blood_encoder = joblib.load(os.path.join(models_path, 'blood_type_encoder.pkl'))
         _bmi_encoder = joblib.load(os.path.join(models_path, 'bmi_category_encoder.pkl'))
 
-        print(f"✅ Загружена расширенная модель (точность: {_metadata['mae']:.1f} дней)")
+        print(f" Загружена расширенная модель (точность: {_metadata['mae']:.1f} дней)")
 
     return _model, _metadata, _blood_encoder, _bmi_encoder
 
@@ -95,37 +95,37 @@ def get_recommendation_advanced(
 
     # Совет по группе крови
     blood_advice = {
-        'O-': "🩸 Вы универсальный донор (O-). Ваша кровь особо ценна!",
-        'O+': "🩸 Вы донор O+, самый распространённый тип.",
-        'AB+': "🩸 Вы универсальный реципиент (AB+)."
+        'O-': " Вы универсальный донор (O-). Ваша кровь особо ценна!",
+        'O+': " Вы донор O+, самый распространённый тип.",
+        'AB+': " Вы универсальный реципиент (AB+)."
     }
     if blood_type in blood_advice:
         advice.append(blood_advice[blood_type])
 
     # Совет по ИМТ
     if bmi < 18.5:
-        advice.append("⚠️ Недостаточный вес. Рекомендуем полноценное питание перед донацией.")
+        advice.append(" Недостаточный вес. Рекомендуем полноценное питание перед донацией.")
         readiness = "yellow"
     elif bmi > 30:
-        advice.append("ℹ️ Избыточный вес. Контролируйте давление перед донацией.")
+        advice.append(" Избыточный вес. Контролируйте давление перед донацией.")
 
     # Совет по гемоглобину
     min_hgb = 13.5 if gender == 1 else 12.5
     if hemoglobin < min_hgb:
-        advice.append(f"⚠️ Низкий гемоглобин ({hemoglobin} < {min_hgb}). Нужно восстановление.")
+        advice.append(f" Низкий гемоглобин ({hemoglobin} < {min_hgb}). Нужно восстановление.")
         readiness = "red"
 
     # Совет по ферритину
     if ferritin < 30:
-        advice.append("⚠️ Низкий ферритин. Принимайте железо (после консультации с врачом).")
+        advice.append(" Низкий ферритин. Принимайте железо (после консультации с врачом).")
         if readiness != "red":
             readiness = "yellow"
 
     # Итоговый совет по интервалу
     if safe_days <= 90:
-        advice.append("✅ Вы можете сдавать кровь в ближайшее время.")
+        advice.append(" Вы можете сдавать кровь в ближайшее время.")
     else:
-        advice.append(f"🩸 Рекомендуемый перерыв: {safe_days} дней.")
+        advice.append(f" Рекомендуемый перерыв: {safe_days} дней.")
 
     return {
         'next_donation_days': safe_days,
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         prev_donations=5, avg_interval_days=95, low_hgb_history=0
     )
 
-    print(f"\n📊 Результат:")
+    print(f"\n Результат:")
     print(f"   ИМТ: {result['bmi']} ({result['bmi_category']})")
     print(f"   Через {result['next_donation_days']} дней")
     print(f"   {result['health_advice']}")

@@ -20,13 +20,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Импортируем нашу модель
 from predict import get_recommendation_advanced, load_advanced_model
 
-# ============================================================
 # НАСТРОЙКИ
-# ============================================================
 
 app = FastAPI(
     title="Blood Donation AI Recommendation API",
-    description="API для персонализированных рекомендаций по донации крови",
+    description="API for personalized blood donation recommendations",
     version="2.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc"
@@ -42,30 +40,28 @@ app.add_middleware(
 )
 
 
-# ============================================================
 # МОДЕЛИ ДАННЫХ (DTO)
-# ============================================================
 
 class DonorRequest(BaseModel):
     """Запрос от Java приложения с данными донора"""
-    age: int = Field(..., ge=18, le=65, description="Возраст донора (18-65 лет)")
-    gender: int = Field(..., ge=0, le=1, description="Пол: 0=женщина, 1=мужчина")
-    blood_type: str = Field(..., pattern="^(A|B|AB|O)[+-]$", description="Группа крови: A+, A-, B+, B-, AB+, AB-, O+, O-")
-    height_cm: float = Field(..., ge=100, le=250, description="Рост в сантиметрах")
-    weight_kg: float = Field(..., ge=30, le=200, description="Вес в килограммах")
-    hemoglobin: float = Field(..., ge=8, le=20, description="Уровень гемоглобина (г/дл)")
-    ferritin: Optional[float] = Field(None, ge=5, le=500, description="Уровень ферритина (мкг/л)")
-    prev_donations: int = Field(0, ge=0, le=100, description="Количество предыдущих донаций")
-    avg_interval_days: Optional[int] = Field(None, ge=30, le=365, description="Средний интервал между донациями (дни)")
-    low_hgb_history: int = Field(0, ge=0, le=1, description="Были ли проблемы с низким гемоглобином: 0=нет, 1=да")
+    age: int = Field(..., ge=18, le=65, description="Donor age (18-65 years)")
+    gender: int = Field(..., ge=0, le=1, description="Gender: 0=female, 1=male")
+    blood_type: str = Field(..., pattern="^(A|B|AB|O)[+-]$", description="Blood type: A+, A-, B+, B-, AB+, AB-, O+, O-")
+    height_cm: float = Field(..., ge=100, le=250, description="Height in centimeters")
+    weight_kg: float = Field(..., ge=30, le=200, description="Weight in kilograms")
+    hemoglobin: float = Field(..., ge=8, le=20, description="Hemoglobin level (g/dL)")
+    ferritin: Optional[float] = Field(None, ge=5, le=500, description="Ferritin level (mcg/L)")
+    prev_donations: int = Field(0, ge=0, le=100, description="Number of previous donations")
+    avg_interval_days: Optional[int] = Field(None, ge=30, le=365, description="Average interval between donations (days)")
+    low_hgb_history: int = Field(0, ge=0, le=1, description="History of low hemoglobin issues: 0=no, 1=yes")
 
     @validator('hemoglobin')
     def validate_hemoglobin(cls, v, values):
         gender = values.get('gender')
         if gender == 1 and v < 11:
-            raise ValueError(f'Гемоглобин {v} слишком низкий для мужчины (минимум 11 для донации)')
+            raise ValueError(f'Hemoglobin {v} is too low for a male (minimum 11 for donation)')
         if gender == 0 and v < 10.5:
-            raise ValueError(f'Гемоглобин {v} слишком низкий для женщины (минимум 10.5 для донации)')
+            raise ValueError(f'Hemoglobin {v} is too low for a female (minimum 10.5 for donation)')
         return v
 
     class Config:
@@ -102,12 +98,12 @@ class DonorResponse(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "success": True,
+                "success": true,
                 "next_donation_days": 90,
-                "ready_soon": True,
+                "ready_soon": true,
                 "readiness_level": "green",
-                "readiness_text": "✅ Готов к донации",
-                "health_advice": "Вы можете сдавать кровь. Хорошие показатели.",
+                "readiness_text": "Ready to donate!",
+                "health_advice": "You can donate blood. Good levels.",
                 "confidence": 0.92,
                 "bmi": 23.1,
                 "bmi_category": "normal"
@@ -116,12 +112,12 @@ class DonorResponse(BaseModel):
 
 
 class BatchRequest(BaseModel):
-    """Пакетный запрос для нескольких доноров"""
+    """пакетный запрос для нескольких доноров"""
     donors: List[DonorRequest]
 
 
 class BatchResponse(BaseModel):
-    """Пакетный ответ"""
+    """пакетный ответ"""
     success: bool
     total: int
     recommendations: List[DonorResponse]
@@ -129,7 +125,7 @@ class BatchResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    """Ответ проверки здоровья сервиса"""
+    """ответ проверки здоровья сервиса"""
     status: str
     model_loaded: bool
     model_accuracy_days: Optional[float] = None
@@ -137,36 +133,32 @@ class HealthResponse(BaseModel):
     timestamp: datetime
 
 
-# ============================================================
 # ЗАГРУЗКА МОДЕЛИ ПРИ СТАРТЕ
-# ============================================================
-
 model_loaded = False
 model_accuracy = None
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Загружаем модель при запуске сервера"""
+    """загружаем модель при запуске сервера"""
     global model_loaded, model_accuracy
     try:
         _, metadata, _, _ = load_advanced_model()
         model_loaded = True
         model_accuracy = metadata.get('mae', None)
-        print("✅ Модель загружена успешно!")
-        print(f"   Точность модели: ±{model_accuracy} дней" if model_accuracy else "")
+        print(" Model loaded successfully!")
+        print(f"   Model accuracy: ±{model_accuracy} days" if model_accuracy else "")
     except Exception as e:
-        print(f"❌ Ошибка загрузки модели: {e}")
+        print(f" Model loading error: {e}")
         model_loaded = False
 
 
-# ============================================================
+
 # API ENDPOINTS
-# ============================================================
 
 @app.get("/", tags=["Health"])
 async def root():
-    """Корневой эндпоинт"""
+    """корневой эндпоинт"""
     return {
         "service": "Blood Donation AI Recommendation",
         "version": "2.0.0",
@@ -177,7 +169,7 @@ async def root():
 
 @app.get("/api/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
-    """Проверка состояния сервиса"""
+    """проверка состояния сервиса"""
     return HealthResponse(
         status="healthy" if model_loaded else "degraded",
         model_loaded=model_loaded,
@@ -189,22 +181,16 @@ async def health_check():
 
 @app.post("/api/recommend", response_model=DonorResponse, tags=["Recommendations"])
 async def get_recommendation(donor: DonorRequest):
-    """
-    Получить персонализированную рекомендацию для донора
-
-    - **Java Monolith** вызывает этот эндпоинт с данными донора
-    - **ИИ модель** анализирует параметры и возвращает рекомендацию
-    - **Результат** можно сохранить в PostgreSQL или вернуть пользователю
-    """
+    """получить персонализированную рекомендацию для донора"""
     if not model_loaded:
-        raise HTTPException(status_code=503, detail="Модель не загружена")
+        raise HTTPException(status_code=503, detail="Model not loaded")
 
     try:
-        # Подготовка параметров (заполняем значения по умолчанию)
+        # подготовка параметров (заполняем по умолчанию)
         ferritin = donor.ferritin if donor.ferritin is not None else 80
         avg_interval = donor.avg_interval_days if donor.avg_interval_days is not None else 90
 
-        # Вызов нашей модели
+        # вызов нашей модели
         result = get_recommendation_advanced(
             age=donor.age,
             gender=donor.gender,
@@ -218,11 +204,10 @@ async def get_recommendation(donor: DonorRequest):
             low_hgb_history=donor.low_hgb_history
         )
 
-        # Формируем ответ
         readiness_text_map = {
-            'green': '✅ Готов к донации',
-            'yellow': '⚠️ Требуется осторожность',
-            'red': '🔴 Донация не рекомендуется'
+            'green': ' Ready to donate',
+            'yellow': ' Caution required',
+            'red': ' Donation not recommended'
         }
 
         return DonorResponse(
@@ -244,15 +229,10 @@ async def get_recommendation(donor: DonorRequest):
 @app.post("/api/recommend/batch", response_model=BatchResponse, tags=["Recommendations"])
 async def get_batch_recommendations(batch: BatchRequest):
     """
-    Получить рекомендации для нескольких доноров (пакетная обработка)
-
-    Полезно для:
-    - Загрузки истории доноров
-    - Массовых рассылок
-    - Отчётов
+    получить рекомендации для нескольких доноров (пакетная обработка)
     """
     if not model_loaded:
-        raise HTTPException(status_code=503, detail="Модель не загружена")
+        raise HTTPException(status_code=503, detail="Model not loaded")
 
     import time
     start_time = time.time()
@@ -279,9 +259,9 @@ async def get_batch_recommendations(batch: BatchRequest):
             )
 
             readiness_text_map = {
-                'green': '✅ Готов к донации',
-                'yellow': '⚠️ Требуется осторожность',
-                'red': '🔴 Донация не рекомендуется'
+                'green': ' Ready to donate',
+                'yellow': ' Caution required',
+                'red': ' Donation not recommended'
             }
 
             recommendations.append(DonorResponse(
@@ -297,9 +277,9 @@ async def get_batch_recommendations(batch: BatchRequest):
             ))
         except Exception as e:
             errors += 1
-            print(f"Ошибка при обработке донора: {e}")
+            print(f"Error processing donor: {e}")
 
-    processing_time = (time.time() - start_time) * 1000
+    processing_time = (time.time() - start_time) * 10000
 
     return BatchResponse(
         success=errors == 0,
@@ -311,7 +291,7 @@ async def get_batch_recommendations(batch: BatchRequest):
 
 @app.get("/api/stats", tags=["Stats"])
 async def get_stats():
-    """Получить статистику работы модели"""
+    """получить статистику работы модели"""
     global model_accuracy
 
     return {
@@ -325,17 +305,16 @@ async def get_stats():
     }
 
 
-# ============================================================
+
 # ЗАПУСК СЕРВЕРА
-# ============================================================
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("🚀 ЗАПУСК FASTAPI СЕРВЕРА ДЛЯ JAVA MONOLITH")
+    print("STARTING FASTAPI SERVER FOR JAVA MONOLITH")
     print("=" * 60)
-    print("\nСервер будет доступен по адресу: http://localhost:8000")
-    print("Документация API: http://localhost:8000/api/docs")
-    print("\nДля Java Monolith используйте:")
+    print("\n Server will be available at: http://localhost:8000")
+    print("API documentation: http://localhost:8000/api/docs")
+    print("\n For Java Monolith use:")
     print("  POST http://localhost:8000/api/recommend")
     print("=" * 60)
 
@@ -343,6 +322,6 @@ if __name__ == "__main__":
         "fastapi_server:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,  # Auto-reload при изменениях кода (только для разработки)
+        reload=False,
         log_level="info"
     )
